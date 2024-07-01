@@ -31,20 +31,30 @@
   </div>
 
   <div id="upload-view" class="hidden">
-    <form action="/upload" method="post" enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md mx-auto">
-      <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Upload Images</h2>
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-bold mb-2" for="file-upload">
-          Choose files
-        </label>
-        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="file-upload" type="file" name="images" multiple required>
+    <div class="flex justify-center">
+      <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Upload Images</h2>
+          <div class="mb-4">
+              <label class="block text-gray-700 text-sm font-bold mb-2" for="file-upload">
+                  Choose files
+              </label>
+              <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="file-upload" type="file" name="images" multiple required>
+          </div>
+          <div class="flex items-center justify-center">
+              <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                  Upload
+              </button>
+          </div>
+      </form>
+      <div id="progressContainer" class="hidden bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <h3 class="text-xl font-bold mb-4 text-center text-gray-800">Upload Progress</h3>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+              <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+          </div>
+          <p id="progressText" class="mt-2 text-center text-gray-600">0%</p>
       </div>
-      <div class="flex items-center justify-center">
-        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
-          Upload
-        </button>
-      </div>
-    </form>
+  </div>
+    
   </div>
 
   <div id="gallery-view" class="hidden">
@@ -52,15 +62,23 @@
     <div class="slideshow-container w-full mb-4 relative overflow-hidden">
       <% images.forEach(function(image, index) { %>
         <div class="slide absolute top-0 left-0 w-full h-full transition-opacity duration-500 ease-in-out <%= index === 0 ? 'opacity-100' : 'opacity-0' %>">
-          <img src="/upload/<%= image %>" alt="<%= image %>" class="w-full h-full object-cover">
+          <a href="/upload/<%= image %>" target="_blank" rel="noopener noreferrer">
+            <img defer src="/upload/<%= image %>" alt="<%= image %>" class="w-full h-full object-contain">
+          </a>
         </div>
       <% }); %>
     </div>
     <div class="thumbnails flex flex-wrap justify-center gap-2">
       <% images.forEach(function(image, index) { %>
-        <img src="/upload/<%= image %>" alt="<%= image %>" class="w-20 h-20 object-cover cursor-pointer" onclick="showSlide(<%= index %>)">
+        <img defer src="/upload/<%= image %>" alt="<%= image %>" class="w-20 h-20 object-cover cursor-pointer" onclick="showSlide(<%= index %>)">
       <% }); %>
     </div>
+    <div class="flex justify-center mt-4">
+      <button onclick="downloadAll()" class="bg-blue-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+        Download All
+      </button>
+    </div>
+    
   </div>
 </div>
 
@@ -83,12 +101,97 @@
 
   let currentSlide = 0;
   const slides = document.querySelectorAll('.slide');
+  
   function showSlide(n) {
     slides[currentSlide].classList.remove('opacity-100');
     slides[currentSlide].classList.add('opacity-0');
     currentSlide = n;
     slides[currentSlide].classList.remove('opacity-0');
     slides[currentSlide].classList.add('opacity-100');
+
+    // Move the current slide to the end of the parent container
+  const slideContainer = slides[currentSlide].parentNode;
+  slideContainer.appendChild(slides[currentSlide]);
+
+  // Update the slides NodeList after DOM changes
+  slides = document.querySelectorAll('.slide');
+  }
+
+  function downloadAll() {
+    fetch('/download', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.password
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.blob();
+      }
+      throw new Error('Network response was not ok.');
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'images.zip';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error);
+    });
+  }
+  
+</script>
+
+<script>
+  document.getElementById('uploadForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const files = document.getElementById('file-upload').files;
+      const totalFiles = files.length;
+      let uploadedFiles = 0;
+
+      document.getElementById('progressContainer').classList.remove('hidden');
+
+      Array.from(files).forEach(file => {
+          const formData = new FormData();
+          formData.append('images', file);
+
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/upload', true);
+
+          xhr.upload.onprogress = function(e) {
+              if (e.lengthComputable) {
+                  const percentComplete = (uploadedFiles / totalFiles) + (e.loaded / e.total) / totalFiles;
+                  updateProgress(percentComplete * 100);
+              }
+          };
+
+          xhr.onload = function() {
+              uploadedFiles++;
+              updateProgress((uploadedFiles / totalFiles) * 100);
+
+              if (uploadedFiles === totalFiles) {
+                  // All files uploaded
+                  console.log('All files uploaded successfully');
+                  document.getElementById('progressContainer').classList.add('hidden');
+              }
+          };
+
+          xhr.send(formData);
+      });
+  });
+
+  function updateProgress(percent) {
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      
+      progressBar.style.width = percent + '%';
+      progressText.textContent = Math.round(percent) + '%';
   }
 </script>
 
