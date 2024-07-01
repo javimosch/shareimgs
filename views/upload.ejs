@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= appName %> - App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .slideshow-container {
+            aspect-ratio: 16/9;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-center mb-6">
+    <div class="inline-flex rounded-md shadow-sm" role="group">
+      <button type="button" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700" onclick="showView('upload')">
+        Upload
+      </button>
+      <button type="button" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700" onclick="showView('gallery')">
+        Gallery
+      </button>
+      <button type="button" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700" onclick="logout()">
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <div id="upload-view" class="hidden">
+    <form action="/upload" method="post" enctype="multipart/form-data" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 w-full max-w-md mx-auto">
+      <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Upload Images</h2>
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2" for="file-upload">
+          Choose files
+        </label>
+        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="file-upload" type="file" name="images" multiple required>
+      </div>
+      <div class="flex items-center justify-center">
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+          Upload
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="gallery-view" class="hidden">
+    <h1 class="text-3xl font-bold mb-6 text-center">Image Gallery</h1>
+    <div class="slideshow-container w-full mb-4 relative overflow-hidden">
+      <% images.forEach(function(image, index) { %>
+        <div class="slide absolute top-0 left-0 w-full h-full transition-opacity duration-500 ease-in-out <%= index === 0 ? 'opacity-100' : 'opacity-0' %>">
+          <img src="/upload/<%= image %>" alt="<%= image %>" class="w-full h-full object-cover">
+        </div>
+      <% }); %>
+    </div>
+    <div class="thumbnails flex flex-wrap justify-center gap-2">
+      <% images.forEach(function(image, index) { %>
+        <img src="/upload/<%= image %>" alt="<%= image %>" class="w-20 h-20 object-cover cursor-pointer" onclick="showSlide(<%= index %>)">
+      <% }); %>
+    </div>
+  </div>
+</div>
+
+<script>
+  localStorage.password = "<%= password %>";
+  
+  function showView(view) {
+    document.getElementById('upload-view').classList.add('hidden');
+    document.getElementById('gallery-view').classList.add('hidden');
+    document.getElementById(view + '-view').classList.remove('hidden');
+  }
+   
+  function logout() {
+    localStorage.removeItem('password');
+    window.location.href = '/';
+  }
+
+  // Show the upload view by default
+  showView('upload');
+
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  function showSlide(n) {
+    slides[currentSlide].classList.remove('opacity-100');
+    slides[currentSlide].classList.add('opacity-0');
+    currentSlide = n;
+    slides[currentSlide].classList.remove('opacity-0');
+    slides[currentSlide].classList.add('opacity-100');
+  }
+</script>
+
+</body>
+</html>
