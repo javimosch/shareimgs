@@ -2,7 +2,7 @@ version: '3'
 
 services:
   app:
-    build: .
+    image: javimosch/fiesta29:latest
     volumes:
       - "./public/upload:/app/public/upload"
     ports:

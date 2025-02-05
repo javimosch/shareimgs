@@ -65,6 +65,9 @@
           <a href="/upload/<%= image %>" target="_blank" rel="noopener noreferrer">
             <img defer src="/upload/<%= image %>" alt="<%= image %>" class="w-full h-full object-contain">
           </a>
+          <button onclick="deleteImage('<%= image %>')" class="absolute top-4 right-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            Delete
+          </button>
         </div>
       <% }); %>
     </div>
@@ -145,6 +148,31 @@
     });
   }
   
+  function deleteImage(filename) {
+    const removePwd = prompt('Please enter the removal password:');
+    if (!removePwd) return;
+
+    fetch(`/upload/${filename}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + removePwd
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        // Refresh the page to update the gallery
+        window.location.reload();
+      } else if (response.status === 401) {
+        alert('Invalid password');
+      } else {
+        throw new Error('Network response was not ok.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error deleting image');
+    });
+  }
 </script>
 
 <script>

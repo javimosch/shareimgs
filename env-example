@@ -1,3 +1,6 @@
 APPNAME=marriage
 PASSWORD=secret
 PORT=3666
+
+# To remove photos (default to 'remove')
+REMOVE_PWD=remove

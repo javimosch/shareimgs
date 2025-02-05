@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -6,6 +7,7 @@ const app = express();
 const archiver = require('archiver');
 const port = process.env.PORT || 3000;
 const password = process.env.PASSWORD || 'foo';
+const removePwd = process.env.REMOVE_PWD || 'remove';
 const uploadDir = path.join(process.cwd(), 'public', 'upload');
 const appName = process.env.APPNAME || 'App'
 const sharp = require('sharp');
@@ -111,6 +113,28 @@ app.post('/upload', upload.array('images', 10), async (req, res) => {
     }
 });
 
+app.delete('/upload/:filename', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== removePwd) {
+        return res.status(401).send('Unauthorized');
+    }
+
+    const filename = req.params.filename;
+    const filePath = path.join(uploadDir, filename);
+    const optimizedFilePath = path.join(uploadDir, `optimized_${filename}`);
+
+    try {
+        // Delete both original and optimized files if they exist
+        await Promise.all([
+            fs.unlink(filePath).catch(() => {}),
+            fs.unlink(optimizedFilePath).catch(() => {})
+        ]);
+        res.status(200).send('File deleted successfully');
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        res.status(500).send('Error deleting file');
+    }
+});
 
 async function getImages(directory) {
     try {
