@@ -5,8 +5,10 @@ services:
     image: javimosch/shareimgs:latest
     volumes:
       - "./public/upload:/app/public/upload"
-    ports:
-      - "${PORT}:${PORT}"
+    expose:
+      - "3000"
+    environment:
+      - PORT: 3000
     env_file:
       - .env
     entrypoint: node
